@@ -20,6 +20,7 @@ import net.sourceforge.jtds.jdbc.Driver;
 import net.sourceforge.jtds.jdbcx.JtdsDataSource;
 
 import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
+import java.io.*;
 
 /**
  * 
@@ -28,44 +29,185 @@ import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 public class CountVersionsAndStructuredData
 {
     DataSource dataSource;
-
+    String serverName;
+    String databaseName;
+    String user;
+    String password;
+    int port;
+    boolean useCursors; //only used for SQL Server
+    String driverType; //only used for Oracle
+    String serviceName; //only used for Oracle
+    String networkProtocol; //only used for Oracle
+    
+    
     public static void main(String[] args) throws SQLException
     {
-        new CountVersionsAndStructuredData().run();
+    	InputStreamReader inputStreamReader = new InputStreamReader(System.in);
+    	BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+    	
+    	System.out.println("(1) MySQL");
+    	System.out.println("(2) SQL Server");
+    	System.out.println("(3) Oracle");
+    	System.out.println("Enter database type: ");
+    	
+    	try {
+			String dbChoiceString = bufferedReader.readLine();
+			int dbChoice = Integer.parseInt(dbChoiceString);
+							
+			switch(dbChoice){
+			case 1: useMySQL();
+					break;
+			case 2: useSQLServer();
+					break;
+			case 3: useOracle();
+					break;
+			}
+			
+		} catch (IOException e) {
+			System.out.println("Error reading database type.");
+		}
+    	
+		try {
+			inputStreamReader.close();
+			bufferedReader.close();
+		} catch (IOException e) {
+			System.out.println("Error closing InputStreamReader.");
+		}
+    	
+    	
+        //new CountVersionsAndStructuredData().run();
+    }
+    
+    public static CountVersionsAndStructuredData getConnectionParameters(String dbType){
+    	InputStreamReader inputStreamReader = new InputStreamReader(System.in);
+    	BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+	
+    	CountVersionsAndStructuredData connection = new CountVersionsAndStructuredData();
+    	
+    	System.out.println("Server name: ");
+    	try {
+			String serverName = bufferedReader.readLine();
+			connection.serverName = serverName;
+		} catch (IOException e) {
+			System.out.println("Error retrieving server name.");
+		}
+    	
+    	System.out.println("Database name: ");
+    	try {
+			String databaseName = bufferedReader.readLine();
+			connection.databaseName = databaseName;
+		} catch (IOException e) {
+			System.out.println("Error retrieving database name.");
+		}
+    	
+    	System.out.println("User: ");
+    	try {
+			String user = bufferedReader.readLine();
+			connection.user = user;
+		} catch (IOException e) {
+			System.out.println("Error retrieving user.");
+		}
+    	
+    	System.out.println("Password: ");
+    	try {
+			String password = bufferedReader.readLine();
+			connection.password = password;
+		} catch (IOException e) {
+			System.out.println("Error retrieving password");
+		}
+    	
+    	System.out.println("Port: ");
+    	try {
+			String portString = bufferedReader.readLine();
+			int port = Integer.parseInt(portString);
+			connection.port = port;
+		} catch (IOException e) {
+			System.out.println("Error retrieving port.");
+		}
+		
+		if(dbType == "oracle"){
+			System.out.println("Service name: ");
+			
+			try {
+				String serviceName = bufferedReader.readLine();
+				connection.serviceName = serviceName;
+			} catch (IOException e) {
+				System.out.println("Error retrieving service name.");
+			}
+			
+		}
+		
+    	return connection;
+    }
+    
+    
+    public static void useMySQL(){
+    	
+    	CountVersionsAndStructuredData mysqlConnection = getConnectionParameters("mysql");
+    	
+    	MysqlDataSource mysqlDataSource = new MysqlDataSource();
+        mysqlDataSource.setServerName(mysqlConnection.serverName);
+        mysqlDataSource.setDatabaseName(mysqlConnection.databaseName);
+        mysqlDataSource.setPortNumber(mysqlConnection.port);
+        mysqlDataSource.setUser(mysqlConnection.user);
+        mysqlDataSource.setPassword(mysqlConnection.password);      
+        mysqlConnection.dataSource = mysqlDataSource;
+        mysqlConnection.run();
+        
+    }
+    
+    public static void useSQLServer(){
+    	
+    	CountVersionsAndStructuredData sqlServerConnection = getConnectionParameters("sqlserver");
+        
+    	JtdsDataSource sqlServerDataSource = new JtdsDataSource();
+    	sqlServerDataSource.setServerType(Driver.SQLSERVER);
+        sqlServerDataSource.setServerName(sqlServerConnection.serverName);
+        sqlServerDataSource.setDatabaseName(sqlServerConnection.databaseName);
+        sqlServerDataSource.setPortNumber(sqlServerConnection.port);
+        sqlServerDataSource.setUser(sqlServerConnection.user);
+        sqlServerDataSource.setPassword(sqlServerConnection.password);
+        sqlServerDataSource.setUseCursors(sqlServerConnection.useCursors);
+        sqlServerConnection.dataSource = sqlServerDataSource;
+        sqlServerConnection.run();
+        
+    }
+    
+    public static void useOracle() throws SQLException{
+    	
+    	CountVersionsAndStructuredData oracleConnection = getConnectionParameters("oracle");
+    	
+    	OracleDataSource oracleDataSource = new OracleDataSource();
+    	oracleDataSource.setServerName(oracleConnection.serverName);
+    	oracleDataSource.setDatabaseName(oracleConnection.databaseName);
+    	oracleDataSource.setUser(oracleConnection.user);
+    	oracleDataSource.setPassword(oracleConnection.password);
+    	oracleDataSource.setPortNumber(oracleConnection.port);
+    	oracleDataSource.setServiceName(oracleConnection.serviceName);
+    	oracleDataSource.setNetworkProtocol(oracleConnection.networkProtocol);
+    	oracleDataSource.setDriverType(oracleConnection.driverType);
+    	oracleConnection.dataSource = oracleDataSource;
+    	oracleConnection.run();
+    	
     }
 
-    CountVersionsAndStructuredData() throws SQLException
-    {
-        MysqlDataSource mysqlDataSource = new MysqlDataSource();
-        mysqlDataSource.setServerName("localhost");
-        mysqlDataSource.setDatabaseName("eib");
-        mysqlDataSource.setPortNumber(3306);
-        mysqlDataSource.setUser("root");
-        mysqlDataSource.setPassword("");
-
-        JtdsDataSource jtdsSource = new JtdsDataSource();
-        jtdsSource.setServerType(Driver.SQLSERVER);
-        jtdsSource.setServerName("sqlserver");
-        jtdsSource.setPortNumber(1450);
-        jtdsSource.setDatabaseName("TCKT-1968_Hofstra");
-        jtdsSource.setUseCursors(true);
-        jtdsSource.setUser("sa");
-        jtdsSource.setPassword("h&nn0n");
-        
-        OracleDataSource oracleDataSource = new OracleDataSource();
-        oracleDataSource.setServerName("huxley");
-        oracleDataSource.setPortNumber(1521);
-        oracleDataSource.setUser("indiana");
-        oracleDataSource.setPassword("indiana");
-        oracleDataSource.setDatabaseName("indiana");
-        oracleDataSource.setDriverType("thin");
-        oracleDataSource.setNetworkProtocol("tcp");
-        oracleDataSource.setServiceName("orcl");
-        
-        this.dataSource = oracleDataSource;
+    public CountVersionsAndStructuredData() {
+    	
+		serverName = null;
+		databaseName = null;
+		user = null;
+		password = null;
+		port = 0;
+		serviceName = null;
+		useCursors = true;
+		driverType = "thin";
+		networkProtocol = "tcp";
+	
         }
 
-    public void run()
+    
+
+	public void run()
     {
         String id = "0050121d814f4e1c003badef39e61c92";
 
@@ -124,3 +266,4 @@ public class CountVersionsAndStructuredData
         }
     }
 }
+
