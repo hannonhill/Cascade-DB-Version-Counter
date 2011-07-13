@@ -1,1 +1,4 @@
 # Readme for the Cascade DB Version Counter
+
+## Summary
+This is a tool to count version chains for assets in a Cascade database
